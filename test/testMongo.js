@@ -18,13 +18,9 @@ const FLAT_ENTRIES = new Promise(resolve => {
     );
 });
 
-before(function(done) {
-    this.timeout(5000);
-    client.connect().then(async function() {
-        await FLAT_ENTRIES;
-        console.log(FLAT_ENTRIES)
-        done();
-    });
+before(function (done) {
+    client.connect()
+    done();
 });
 
 after(done => client.close(done));
@@ -44,11 +40,26 @@ describe("Patients collection", () => {
         });
     });
 
+    it("should have no documents missing a first name", async done => {
+        const consentButNoEmail = await patients.find({
+            "CONSENT": true,
+            "Email Address": null
+        }).project("Member ID").toArray();
+        assert.deepEqual(noNames, [], "These members are missing their first name");
+    });
+
+    it("should have an email for every member who has consent", async done => {
+        const noNames = await patients.find({
+            "First Name": null
+        }).project("Member ID").toArray();
+        assert.deepEqual(noNames, [], "These members are missing their first name");
+    });
+
     for (let i = 1; i < FLAT_ENTRIES.length; i++) {
         it("should match the flat file's contents", async done => {
             const membersWithThisID = patients.find({ "Member ID": FLAT_ENTRIES[i][3] });
             const patient = membersWithThisID.next();
-            if(membersWithThisID.hasNext()) {
+            if (membersWithThisID.hasNext()) {
                 assert.isTrue(false, "Multiple members have the same id");
             }
             for (let keyIndex = 0; keyIndex < FLAT_ENTRIES[0].length; keyIndex++) {

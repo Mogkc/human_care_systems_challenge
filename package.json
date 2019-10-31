@@ -4,7 +4,7 @@
   "description": "Shows knowledge of mongo and testing",
   "main": "createDB.js",
   "scripts": {
-    "setup": "node populatePatients.js",
+    "setup": "node populatePatients.js && node populateEmails.js",
     "test": "mocha"
   },
   "author": "Carson Mogk",

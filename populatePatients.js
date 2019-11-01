@@ -18,6 +18,7 @@ function populatePatientsFromLocalFile(relativePath) {
             const entries = data.toString().split(/\r?\n/); // The optional \r covers windows files
             const keys = pullOutFirstRow(entries).split("|");
             for (let entry of entries) {
+                if(entry == "") continue; // Skip lines with no data
                 const jsonEntry = convertFlatEntryToJSON(keys, entry);
                 patients.insertOne(jsonEntry);
             }

@@ -11,7 +11,7 @@ client.connect(function (err) {
 async function populateEmails() {
     const patients = client.db("hcs_challenge_mogk").collection("Patients");
     // Get the id's and email addresses of eveyone who's being emailed
-    const isBeingEmailed = patients.find(
+    const isBeingEmailed = await patients.find(
         {
             "CONSENT": true,
             "Email Address": { $exists: true }
@@ -23,9 +23,10 @@ async function populateEmails() {
     while(patient = await isBeingEmailed.next()) {
         generateEmails(patient._id);
     }
-    isBeingEmailed.forEach(patient => {
+    await isBeingEmailed.forEach(patient => {
         generateEmails(patient);
     });
+    client.close();
 }
 
 function generateEmails(target_id) {

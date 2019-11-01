@@ -76,13 +76,21 @@ describe("Patients collection", () => {
     it("should match the flat file's contents", async () => {
         const flat = await FLAT_ENTRIES;
         for (let i = 1; i < flat.length; i++) {
-            const membersWithThisID = patients
+            const memberID = flat[i][3];
+            // Check for duplicates
+            const numDuplicates = await patients.countDocuments({ "Member ID": parseInt(memberID) });
+            assert.equal(
+                numDuplicates,
+                1,
+                `Collision or missing document on Member ID ${memberID}`
+            );
+            // Select the one person with that ID
+            const patient = await patients
                 .find(
-                    { "Member ID": parseInt(flat[i][3]) }
+                    { "Member ID": parseInt(memberID) }
                 ).sort(
                     { "_id": -1 }
-                );
-            let patient = await membersWithThisID.next();
+                ).next();
             for (let keyIndex = 0; keyIndex < flat[0].length; keyIndex++) {
                 const key = flat[0][keyIndex];
                 assert.equal(patient[key], interpret(flat[i][keyIndex]), `Flat file line ${i} doesn't match mongo data`);

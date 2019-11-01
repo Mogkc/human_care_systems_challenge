@@ -5,7 +5,7 @@ To setup and run this repository, you need NodeJS, npm, and a mongoDB localhost.
 
 Once you've cloned and moved into the repository, use these commands:
  1. **npm i** to install all of the required packages
- 2. **npm run setup** to run a creates and populate the collections
+ 2. **npm run setup** to create and populate the collections
  3. **npm test** to run the tests and see the results in your console.
 
 I used Mocha and Chai to run the tests, so they document as they run.

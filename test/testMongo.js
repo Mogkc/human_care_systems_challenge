@@ -11,6 +11,10 @@ const FLAT_ENTRIES = new Promise((resolve, reject) => {
             if (err) throw (err);
             const flatEntries = data.toString().split(/\r?\n/); // The optional \r covers windows files
             for (let i = 0; i < flatEntries.length; i++) {
+                if (flatEntries[i] == '') {
+                    flatEntries.splice(i, 1);
+                    continue;
+                }
                 flatEntries[i] = flatEntries[i].split("|");
             }
             resolve(flatEntries);
@@ -68,23 +72,30 @@ describe("Patients collection", () => {
         assert.equal(shouldBeEmpty, "");
     });
 
-    FLAT_ENTRIES.then(flat => {
+
+    it("should match the flat file's contents", async () => {
+        const flat = await FLAT_ENTRIES;
         for (let i = 1; i < flat.length; i++) {
-            it("should match the flat file's contents", async done => {
-                const membersWithThisID = patients.find({ "Member ID": FLAT_ENTRIES[i][3] });
-                const patient = membersWithThisID.next();
-                if (membersWithThisID.hasNext()) {
-                    assert.isTrue(false, "Multiple members have the same id");
-                }
-                for (let keyIndex = 0; keyIndex < FLAT_ENTRIES[0].length; keyIndex++) {
-                    const key = FLAT_ENTRIES[0][keyIndex];
-                    assert.equal(patient[key], flatVersion[keyIndex], `Flat file line ${i} doesn't match mongo data`);
-                }
-                done();
-            });
+            const membersWithThisID = patients
+                .find(
+                    { "Member ID": parseInt(flat[i][3]) }
+                ).sort(
+                    { "_id": -1 }
+                );
+            let patient = await membersWithThisID.next();
+            for (let keyIndex = 0; keyIndex < flat[0].length; keyIndex++) {
+                const key = flat[0][keyIndex];
+                assert.equal(patient[key], interpret(flat[i][keyIndex]), `Flat file line ${i} doesn't match mongo data`);
+            }
         }
-    }).catch(e => {
-        console.log("Could not check db vs flat because flat didn't load");
+
+        function interpret(val) {
+            if (val == '') return undefined;
+            if (val == 'Y') return true;
+            if (val == 'N') return false;
+            if (!isNaN(Number(val))) return Number(val);
+            return val;
+        }
     });
 });
 

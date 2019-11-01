@@ -33,14 +33,10 @@ describe("Patients collection", () => {
         done();
     });
 
-    it("should have one document per patient", done => {
-        FLAT_ENTRIES.then(flat => {
-            patients.countDocuments({}).then(numPatients => {
-                assert.equal(numPatients, flat.length - 1, "The number of patients isn't the same in database vs flat file");
-            });
-        }).catch(e => {
-            console.log("Could not check doc vs flat numPatients because flat didn't load");
-        }).finally(done);
+    it("should have one document per patient", async () => {
+        const flat = await FLAT_ENTRIES;
+        const numPatients = await patients.countDocuments({})
+        assert.equal(numPatients, flat.filter(e => e != '').length - 1, "The number of patients isn't the same in database vs flat file");
     });
 
     it("should have no documents missing a first name", async () => {
@@ -69,7 +65,6 @@ describe("Patients collection", () => {
             (acc, curr) => acc += curr["Member ID"] + " has consent but no email ",
             ""
         );
-        console.log(consentButNoEmail);
         assert.equal(shouldBeEmpty, "");
     });
 
@@ -90,5 +85,61 @@ describe("Patients collection", () => {
         }
     }).catch(e => {
         console.log("Could not check db vs flat because flat didn't load");
+    });
+});
+
+describe("Emails collection", () => {
+    let emails, patients;
+
+    before(done => {
+        emails = client.db("hcs_challenge_mogk").collection("Emails");
+        patients = client.db("hcs_challenge_mogk").collection("Patients");
+        done();
+    });
+
+    it("should always be to someone", async () => {
+        const numEmailsWOutAddress = await emails.countDocuments({ "To": null });
+        assert.equal(numEmailsWOutAddress, 0, "There are emails to no one");
+    });
+
+    it("should contain emails for everyone who has consent Y", async () => {
+        const consenters = await patients.find({ "Consent": true }, { "Member ID": 1 });
+        while (consenter = await consenters.next()) {
+            const id = consenter["Member ID"];
+            assert.isAbove(
+                await emails.find(
+                    { To: { $ref: "Patients", "Member ID": id } }
+                ).countDocuments(),
+                0,
+                `Member ${id} consented but recieved no emails. There may be others.`
+            );
+        }
+    });
+
+    describe("Subject lines", () => {
+        it("should consist of 'Day X'", async () => {
+            const wrongSubjectCount = await emails.countDocuments({ "Subject": { $not: /Day \d+/ } });
+            assert.isBelow(wrongSubjectCount, 1, "There's at least one email with the wrong subject");
+        });
+
+        // it("should be in the right order", async () => {
+        //     const randomPerson = await emails.aggregate([
+        //         // Since we're getting emails, only select people who've consent
+        //         { $match: { "CONSENT": true } },
+        //         { $sample: { size: 2 } }
+        //     ]).toArray();
+        //     console.log(randomPerson);
+        //     const orderedByDate = await emails.find(
+        //         { To: { $ref: "Patients", "Member ID": randomPerson["Member ID"] } }
+        //     ).sort({ "Date": 1 });
+        //     while (orderedByDate.hasNext()) {
+        //         let prev = current || null;
+        //         // Get the first number from the subject line
+        //         let current = parseInt(orderedByDate.next()["Subject"].match(/\d+/)[0]);
+        //         if (prev != null) {
+        //             assert.isAtLeast(current, prev, `Member ${randomPerson["Member ID"]}'s emails are out of order`)
+        //         }
+        //     }
+        // });
     });
 });

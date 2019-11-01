@@ -10,6 +10,6 @@ Once you've cloned and moved into the repository, use these commands:
 
 I used Mocha and Chai to run the tests, so they document as they run.
 
-![Screenshot of Tests](./screenshot1.xcf)
+![Screenshot of Tests](./screenshot1.jpg)
 
 They point out what's wrong and where.
